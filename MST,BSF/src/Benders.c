@@ -1,0 +1,61 @@
+#include "headers.h"
+
+extern int** interdiction, ** fortification;
+extern int Fbudget, Ibudget;
+extern int sample, sampleIndex, bindex;
+extern double* objSample, M;
+extern int checkVisted;
+////////////////////////////////////////////////////////////////////////////////
+int Benders(CONFIGURATION param, INSTANCE data, RESULTS* results) {
+
+	int status = 0;
+	int N = data.N;
+	int E = data.E;
+	int K = data.K;
+
+	CPXENVptr env = NULL;     // pointer to Cplex Enviroment
+	CPXLPptr  lp = NULL;     // pointer to Cplex Linear Program data structure
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Structs of Global Variables:
+	BENDERS_VARIABLES var;
+	GLOBAL_INFO	global;
+	var.master = create_double_vector(E + K);
+	var.subproblem = create_double_matrix(K, E + N);
+	var.cut_sets = create_int_matrix(N, N);
+	var.capacity = create_double_matrix(N, N);
+	var.dist = create_double_matrix(N, N);
+	var.init_time = clock();
+	var.last_id = NONE;
+	var.last_id_visits = 0;
+	var.flag_initial_sol = NO;
+	var.flag_generate_cuts = YES;
+	var.flag_fist_master = YES;
+	var.core_point = create_double_vector(E);
+	var.lambda = 0.0;
+	global.data = &data;
+	global.param = &param;
+	global.results = results;
+	global.var = &var;
+	/////////////////////////////////////////////////////////////////////////////
+
+	// Generate the initial LP:
+	if (elapsed(var.init_time) < param.MAX_CPU_TIME) {
+		if (param.SCREEN_OUTPUT >= 1) { printf("\nGENERATING BASE MODEL:\n"); }
+		status = create_CPLEX_master_lp(env, &lp, global);
+		assert(status == 0);
+	}
+
+	
+	// Clean:
+	free_double_vector(&(var.master));
+	free_double_matrix(&(var.subproblem), K);
+	free_int_matrix(&(var.cut_sets), N);
+	free_double_matrix(&(var.capacity), N);
+	free_double_matrix(&(var.dist), N);
+	free_double_vector(&(var.core_point));
+
+
+	return status;
+}
+////////////////////////////////////////////////////////////////////////////////
